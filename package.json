@@ -11,7 +11,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "excel4node": "^1.7.2",
+    "exceljs": "^4.2.1",
     "mysql": "^2.18.1"
   }
 }

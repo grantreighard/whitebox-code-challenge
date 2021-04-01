@@ -1,7 +1,7 @@
 const mysql = require('mysql');
-const excel = require('excel4node');
+const exceljs = require('exceljs');
 
-const workbook = new excel.Workbook();
+const workbook = new exceljs.Workbook();
 const worksheet = workbook.addWorksheet('Domestic Standard Rates');
 const worksheet1 = workbook.addWorksheet('Domestic Expedited Rates');
 const worksheet2 = workbook.addWorksheet('Domestic Next Day Rates');
@@ -14,69 +14,93 @@ const con = mysql.createConnection({
     database: 'data'
 })
 
-const style = workbook.createStyle({
-    font: {
-        color: '#000000',
-        size: 12
-    }
-})
-
-con.connect((err) => {
-    if (err) {
-        throw err;
-    }
-
-    con.query("SELECT * from rates WHERE client_id = 1240 AND shipping_speed = 'standard' AND locale = 'domestic'", function (err, result, fields) {
+async function writeExcel() {
+    await con.connect(async (err) => {
         if (err) {
             throw err;
         }
-
-        for(let i = 0; i < result.length; i++) {
-            for (let j = 0; j < Object.keys(result[i]).length; j++) {
-                const data = result[i][Object.keys(result[i])[j]];
-                typeof data === 'number' ? worksheet.cell(i, j).number(data).style(style) : worksheet.cell(i, j).string(data).style(style);
+    
+        await con.query("SELECT * from rates WHERE client_id = 1240 AND shipping_speed = 'standard' AND locale = 'domestic'", async function (err, result, fields) {
+            if (err) {
+                throw err;
             }
-        }
+
+            const keys = Object.keys(result[0]);
+            const innerFunc = () => {
+                worksheet.columns = keys.map(header => {
+                    return {
+                        header: header,
+                        key: header
+                    }
+                })
+            }
+            
+            await innerFunc();
+            await worksheet.addRows(result);
+        })
+    
+        await con.query("SELECT * from rates WHERE client_id = 1240 AND shipping_speed = 'expedited' AND locale = 'domestic'", async function (err, result, fields) {
+            if (err) {
+                throw err;
+            }
+    
+            const keys = Object.keys(result[0]);
+            const innerFunc = () => {
+                worksheet1.columns = keys.map(header => {
+                    return {
+                        header: header,
+                        key: header
+                    }
+                })
+            }
+            
+            await innerFunc();
+            await worksheet1.addRows(result);
+        })
+    
+        await con.query("SELECT * from rates WHERE client_id = 1240 AND shipping_speed = 'nextDay' AND locale = 'domestic'", async function (err, result, fields) {
+            if (err) {
+                throw err;
+            }
+    
+            const keys = Object.keys(result[0]);
+            const innerFunc = () => {
+                worksheet2.columns = keys.map(header => {
+                    return {
+                        header: header,
+                        key: header
+                    }
+                })
+            }
+            
+            await innerFunc();
+            await worksheet2.addRows(result);
+        })
+    
+        await con.query("SELECT * from rates WHERE client_id = 1240 AND shipping_speed = 'intlEconomy' AND locale = 'international'", async function (err, result, fields) {
+            if (err) {
+                throw err;
+            }
+    
+            const keys = Object.keys(result[0]);
+            const innerFunc = () => {
+                worksheet3.columns = keys.map(header => {
+                    return {
+                        header: header,
+                        key: header
+                    }
+                })
+            }
+            
+            await innerFunc();
+            await worksheet3.addRows(result);
+        })
     })
 
-    con.query("SELECT * from rates WHERE client_id = 1240 AND shipping_speed = 'expedited' AND locale = 'domestic'", function (err, result, fields) {
-        if (err) {
-            throw err;
-        }
+    setTimeout(async () => {
+        await workbook.xlsx.writeFile('output.xlsx');
+    }, 10000)
+    
+}
 
-        for(let i = 0; i < result.length; i++) {
-            for (let j = 0; j < Object.keys(result[i]).length; j++) {
-                const data = result[i][Object.keys(result[i])[j]];
-                typeof data === 'number' ? worksheet1.cell(i, j).number(data).style(style) : worksheet.cell(i, j).string(data).style(style);
-            }
-        }
-    })
-
-    con.query("SELECT * from rates WHERE client_id = 1240 AND shipping_speed = 'next_day' AND locale = 'domestic'", function (err, result, fields) {
-        if (err) {
-            throw err;
-        }
-
-        for(let i = 0; i < result.length; i++) {
-            for (let j = 0; j < Object.keys(result[i]).length; j++) {
-                const data = result[i][Object.keys(result[i])[j]];
-                typeof data === 'number' ? worksheet2.cell(i, j).number(data).style(style) : worksheet.cell(i, j).string(data).style(style);
-            }
-        }
-    })
-
-    con.query("SELECT * from rates WHERE client_id = 1240 AND shipping_speed = 'economy' AND locale = 'international'", function (err, result, fields) {
-        if (err) {
-            throw err;
-        }
-
-        for(let i = 0; i < result.length; i++) {
-            for (let j = 0; j < Object.keys(result[i]).length; j++) {
-                const data = result[i][Object.keys(result[i])[j]];
-                typeof data === 'number' ? worksheet3.cell(i, j).number(data).style(style) : worksheet.cell(i, j).string(data).style(style);
-            }
-        }
-    })
-
-    workbook.write('output.xlsx');
-})
+writeExcel();
